@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contrib-intel"
+version = "0.1.0"
+description = "Extract implicit contribution rules from GitHub PR history using Claude AI"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "requests>=2.31",
+    "anthropic>=0.25",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+contrib-intel = "contrib_intel.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["contrib_intel*"]
