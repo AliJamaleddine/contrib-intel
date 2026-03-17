@@ -1,13 +1,13 @@
-"""Claude-powered analysis of PR patterns."""
+"""AI-powered analysis of PR patterns."""
 
 import json
 from datetime import datetime, timezone
 from typing import Any
 
-import anthropic
+from openai import OpenAI
 
 
-_MODEL = "claude-sonnet-4-20250514"
+_MODEL = "gpt-4o-mini"
 _MAX_PROMPT_CHARS = 60_000
 
 _SYSTEM_PROMPT = """\
@@ -98,10 +98,13 @@ def analyze_repo_data(
     owner: str,
     repo: str,
     repo_data: dict[str, Any],
-    anthropic_api_key: str,
+    github_token: str,
 ) -> dict[str, Any]:
-    """Send PR data to Claude and return parsed JSON analysis."""
-    client = anthropic.Anthropic(api_key=anthropic_api_key)
+    """Send PR data to AI and return parsed JSON analysis."""
+    client = OpenAI(
+        base_url="https://models.inference.ai.azure.com",
+        api_key=github_token,
+    )
 
     compressed = _build_compressed_data(repo_data)
     contributing = repo_data["metadata"].get("contributing_md") or "Not found"
@@ -122,13 +125,15 @@ Extract contribution intelligence as JSON with exactly this schema:
         prompt = user_prompt
         if extra_instruction:
             prompt = extra_instruction + "\n\n" + user_prompt
-        msg = client.messages.create(
+        response = client.chat.completions.create(
             model=_MODEL,
-            max_tokens=4096,
-            system=_SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": prompt},
+            ],
         )
-        return msg.content[0].text
+        return response.choices[0].message.content
 
     raw = _call()
 

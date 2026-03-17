@@ -1,6 +1,6 @@
 # contrib-intel
 
-`contrib-intel` analyzes a GitHub repository's pull request history with Claude AI and produces a Markdown report revealing the **implicit, unwritten rules** of that project — the patterns that actually get PRs merged vs. rejected, even when they're never documented anywhere.
+`contrib-intel` analyzes a GitHub repository's pull request history with AI and produces a Markdown report revealing the **implicit, unwritten rules** of that project — the patterns that actually get PRs merged vs. rejected, even when they're never documented anywhere.
 
 ## Installation
 
@@ -10,22 +10,18 @@ cd contrib-intel
 pip install -e .
 ```
 
-## Setup
-
-You need two environment variables:
-
-```bash
-export GITHUB_TOKEN=ghp_your_token_here       # GitHub personal access token
-export ANTHROPIC_API_KEY=sk-ant-your_key_here # Anthropic API key
-```
-
-Or create a `.env` file (see `.env.example`).
-
-A GitHub token with default public repo read access is sufficient for public repos.
-
 ## Usage
 
+If you have the [GitHub CLI](https://cli.github.com/) installed and authenticated, no configuration is needed:
+
 ```bash
+contrib-intel analyze https://github.com/vitejs/vite
+```
+
+The token is auto-detected from `gh auth token`. If `gh` is not available, set `GITHUB_TOKEN` in your environment or `.env` file:
+
+```bash
+export GITHUB_TOKEN=ghp_your_token_here
 contrib-intel analyze https://github.com/vitejs/vite
 ```
 
@@ -36,6 +32,8 @@ contrib-intel analyze https://github.com/vitejs/vite \
   --output vite-contribution-guide.md \
   --token ghp_your_token_here
 ```
+
+A GitHub token with default public repo read access is sufficient for public repos. See `.env.example` for details.
 
 ### Sample output
 
@@ -76,14 +74,14 @@ change, open an issue first to get maintainer signal before writing code.
 ## How it works
 
 - **Fetches** the last 100 closed PRs (merged and rejected) from the GitHub REST API, including review comments for each
-- **Compresses** PR data into a compact text format and sends it to Claude with a structured prompt asking for pattern extraction
-- **Renders** Claude's JSON response into a clean, actionable Markdown report you can reference when preparing your contribution
+- **Compresses** PR data into a compact text format and sends it to an AI model with a structured prompt asking for pattern extraction
+- **Renders** the AI's JSON response into a clean, actionable Markdown report you can reference when preparing your contribution
 
 ## Limitations
 
 - **Public repos only** — GitHub tokens for private repos are not supported
 - **Needs 20+ merged PRs** — the analysis degrades significantly with fewer PRs; very new or low-activity projects will produce weak results
-- **Claude can miss nuance** — AI-extracted patterns are probabilistic; always read some actual PR threads yourself before contributing
+- **AI can miss nuance** — AI-extracted patterns are probabilistic; always read some actual PR threads yourself before contributing
 - **GitHub-only** — GitLab, Bitbucket, and other hosts are not supported
 - **Rate limits** — GitHub's unauthenticated rate limit (60 req/hr) is too low; a token is required. The tool fetches ~150 API calls per run.
 

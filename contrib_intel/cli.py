@@ -2,6 +2,7 @@
 
 import os
 import re
+import subprocess
 import sys
 from datetime import date
 
@@ -11,6 +12,26 @@ from dotenv import load_dotenv
 from .github_fetcher import fetch_repo_data
 from .analyzer import analyze_repo_data
 from .reporter import generate_report
+
+
+def get_github_token(token_flag=None):
+    """Resolve GitHub token from flag, env, gh CLI, or prompt."""
+    if token_flag:
+        return token_flag
+    if os.environ.get("GITHUB_TOKEN"):
+        return os.environ["GITHUB_TOKEN"]
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except FileNotFoundError:
+        pass
+    click.echo("No GitHub token found automatically.")
+    click.echo("Create one at: github.com/settings/tokens (no permissions needed)")
+    return click.prompt("GitHub token")
 
 
 def parse_repo_url(url: str) -> tuple[str, str]:
@@ -59,22 +80,7 @@ def analyze(repo_url: str, output: str, token: str | None):
     load_dotenv()
 
     # Resolve GitHub token
-    github_token = token or os.environ.get("GITHUB_TOKEN")
-    if not github_token:
-        click.echo(
-            "Error: GitHub token is required. Set GITHUB_TOKEN env var or use --token.",
-            err=True,
-        )
-        sys.exit(1)
-
-    # Resolve Anthropic API key
-    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not anthropic_key:
-        click.echo(
-            "Error: ANTHROPIC_API_KEY env var is required.",
-            err=True,
-        )
-        sys.exit(1)
+    github_token = get_github_token(token)
 
     # Parse repo URL
     try:
@@ -99,10 +105,10 @@ def analyze(repo_url: str, output: str, token: str | None):
     n_rejected = len(repo_data["rejected_prs"])
     click.echo(f"  Found {n_merged} merged PRs and {n_rejected} rejected PRs.")
 
-    # Step 2: Analyze with Claude
-    click.echo("Analyzing PR patterns with Claude...")
+    # Step 2: Analyze with AI
+    click.echo("Analyzing PR patterns with AI...")
     try:
-        analysis = analyze_repo_data(owner, repo, repo_data, anthropic_key)
+        analysis = analyze_repo_data(owner, repo, repo_data, github_token)
     except Exception as e:
         click.echo(f"Error during Claude analysis: {e}", err=True)
         sys.exit(1)
